@@ -37,6 +37,16 @@ var Example4 MemoryDbTest = MemoryDbTest{
 	Outputs: []string{"", "", "", "foo", "", "1", "", "1", "", "NULL", "0", "", "bar", "1", "", "bar", "baz", ""},
 }
 
+var SampleTest1 MemoryDbTest = MemoryDbTest{
+	Inputs:  []string{"SET a foo", "SET b baz", "BEGIN", "GET a", "SET a bar", "COUNT bar", "BEGIN", "COUNT bar", "COUNT foo", "DELETE a", "GET a", "COUNT bar", "ROLLBACK", "GET a", "COUNT bar", "ROLLBACK", "GET a", "GET b", "END"},
+	Outputs: []string{"", "", "", "foo", "", "1", "", "1", "0", "", "NULL", "0", "", "bar", "1", "", "foo", "baz", ""},
+}
+
+var SampleTest2 MemoryDbTest = MemoryDbTest{
+	Inputs:  []string{"SET a foo", "SET b foo", "COUNT foo", "BEGIN", "COUNT foo", "SET a bar", "COUNT foo", "COUNT bar", "BEGIN", "SET b baz", "COUNT foo", "COMMIT", "GET a", "GET b", "END"},
+	Outputs: []string{"", "", "2", "", "2", "", "1", "1", "", "", "0", "", "bar", "baz", ""},
+}
+
 func init() {
 	EnableTestMode = true // Enable this so the program doesn't exit when "END" command is tested.
 	clog.LogLevel = 5
@@ -73,6 +83,18 @@ func TestInvalidStatements(t *testing.T) {
 	if err != ERR_INVALID_ARGS_NUM {
 		t.Errorf("Statement: %s | Expected ERR_INVALID_COMMAND_KEYWORD, but got: %s", stmt, err)
 	}
+
+	stmt = "ROLLBACK"
+	_, err = processStatement(stmt)
+	if err != ERR_NOT_TRANSACTION {
+		t.Errorf("Statement: %s | Expected ERR_INVALID_COMMAND_KEYWORD, but got: %s", stmt, err)
+	}
+
+	stmt = "COMMIT"
+	_, err = processStatement(stmt)
+	if err != ERR_NOT_TRANSACTION {
+		t.Errorf("Statement: %s | Expected ERR_INVALID_COMMAND_KEYWORD, but got: %s", stmt, err)
+	}
 }
 
 func TestExample0(t *testing.T) {
@@ -105,6 +127,20 @@ func TestExample3(t *testing.T) {
 
 func TestExample4(t *testing.T) {
 	err := exampleTestHelper(Example4)
+	if err != nil {
+		t.Error(err)
+	}
+}
+
+func TestSampleTest1(t *testing.T) {
+	err := exampleTestHelper(SampleTest1)
+	if err != nil {
+		t.Error(err)
+	}
+}
+
+func TestSampleTest2(t *testing.T) {
+	err := exampleTestHelper(SampleTest2)
 	if err != nil {
 		t.Error(err)
 	}

@@ -167,11 +167,8 @@ func (s *Store) Commit() error {
 	primary := s.GetPrimaryStore()
 
 	// 1. Update the KeyValue map of the primary store based on the current transaction's Kv map (which
-	// only contains keys/value that have been updated for the current transaction).
-	// For any keys that we've set in the current transaction, update them in the primary store
-	for k, v := range s.Kv {
-		primary.Kv[k] = v
-	}
+	// only contains keys/value that have been updated for the current transaction), and it's recursive parents.
+	primary.Kv = s.commitKv()
 
 	// 2. Update the CountDiff of the primary Store, by recursively taking count values and applying the diffs on the parent
 	// all the way till the primary Store.
@@ -181,6 +178,24 @@ func (s *Store) Commit() error {
 	SetCurrentStore(primary)
 
 	return nil
+}
+
+// commitKv provides the merged KeyValue map taking into all the transactions, as it recursively merges the
+// changes into the parent's Kv map.
+func (s *Store) commitKv() map[string]string {
+	// Base Condition
+	if s.Parent == nil {
+		return s.Kv
+	}
+
+	// Update the KeyValue map of the primary store based on the current transaction's Kv map (which
+	// only contains keys/value that have been updated for the current transaction).
+	// For any keys that we've set in the current transaction, update them in the parent store
+	for k, v := range s.Kv {
+		s.Parent.Kv[k] = v
+	}
+
+	return s.Parent.commitKv()
 }
 
 // commitCountDiffs provides the counts of all the values stored in the current state of Store.
